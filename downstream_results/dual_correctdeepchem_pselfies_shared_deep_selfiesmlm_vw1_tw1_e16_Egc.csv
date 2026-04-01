@@ -1,0 +1,2 @@
+model,backbone,view_weight,translation_weight,task,n_samples,test_rmse_mean,test_rmse_std,test_r2_mean,test_r2_std,train_r2_mean
+dual_correctdeepchem_pselfies_shared_deep_selfiesmlm_vw1_tw1_e16,dual_correctdeepchem_pselfies_shared,1.0,1.0,Egc,3380,0.4556,0.0148,0.9148,0.0057,0.9864

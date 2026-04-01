@@ -9,11 +9,13 @@ import selfies as sf
 
 import selfies as sfl
 
+from .paths import get_paths
 from .smi_ted_tokenizer import SmiTedTokenizer, PATTERN
 
-SMI_TED_DIR = Path("/mnt/data/p1m_pretrain_experiments/checkpoints/smi_ted")
-PI1M_CACHE = Path("/mnt/data/p1m_pretrain_experiments/cache/pi1m_train_dedup.parquet")
-SELFIES_TOKENS_CACHE = Path("/mnt/data/p1m_pretrain_experiments/cache/smi_ted_selfies_tokens.json")
+PATHS = get_paths()
+SMI_TED_DIR = PATHS.smi_ted_dir
+PI1M_CACHE = PATHS.cache_dir / "pi1m_train_dedup.parquet"
+SELFIES_TOKENS_CACHE = PATHS.cache_dir / "smi_ted_selfies_tokens.json"
 
 SMILES_PREFIX = "<SMILES>"
 SELFIES_PREFIX = "<SELFIES>"

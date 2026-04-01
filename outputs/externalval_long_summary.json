@@ -1,0 +1,74 @@
+[
+  {
+    "run": "externalval_long_checkpoint_mmpolymer_both",
+    "val_mlm_loss": 0.49690927634947,
+    "val_view_loss": 0.08003664596981253,
+    "val_translation_loss": 1.8540147338062525,
+    "val_view_top1": 0.984375,
+    "val_translation_token_accuracy": 0.4658398567698896,
+    "step": 150
+  },
+  {
+    "run": "externalval_long_checkpoint_mmpolymer_original",
+    "val_mlm_loss": 0.4916617607232183,
+    "val_view_loss": 0.9716568049043417,
+    "val_translation_loss": 5.263478979468346,
+    "val_view_top1": 0.90234375,
+    "val_translation_token_accuracy": 0.007614721194840968,
+    "step": 150
+  },
+  {
+    "run": "externalval_long_checkpoint_mmpolymer_translation_only",
+    "val_mlm_loss": 0.5081314437557012,
+    "val_view_loss": 0.9256394114345312,
+    "val_translation_loss": 1.857781507074833,
+    "val_view_top1": 0.89453125,
+    "val_translation_token_accuracy": 0.4645679946988821,
+    "step": 150
+  },
+  {
+    "run": "externalval_long_checkpoint_mmpolymer_view_only",
+    "val_mlm_loss": 0.4944661040790379,
+    "val_view_loss": 0.07545169809964136,
+    "val_translation_loss": 5.255405738949776,
+    "val_view_top1": 0.990234375,
+    "val_translation_token_accuracy": 0.0074817341464950005,
+    "step": 150
+  },
+  {
+    "run": "externalval_long_checkpoint_transpolymer_both",
+    "val_mlm_loss": 0.5000489065423608,
+    "val_view_loss": 0.09558147806092165,
+    "val_translation_loss": 2.0346184335649014,
+    "val_view_top1": 0.98046875,
+    "val_translation_token_accuracy": 0.455997874494642,
+    "step": 60
+  },
+  {
+    "run": "externalval_long_checkpoint_transpolymer_original",
+    "val_mlm_loss": 0.5017685081111267,
+    "val_view_loss": 0.6917403060942888,
+    "val_translation_loss": 5.30897131562233,
+    "val_view_top1": 0.923828125,
+    "val_translation_token_accuracy": 0.01975872395269107,
+    "step": 60
+  },
+  {
+    "run": "externalval_long_checkpoint_transpolymer_translation_only",
+    "val_mlm_loss": 0.5385601953603327,
+    "val_view_loss": 0.7287427634000778,
+    "val_translation_loss": 2.0367084722965956,
+    "val_view_top1": 0.9296875,
+    "val_translation_token_accuracy": 0.45643655164167285,
+    "step": 60
+  },
+  {
+    "run": "externalval_long_checkpoint_transpolymer_view_only",
+    "val_mlm_loss": 0.5135560312774032,
+    "val_view_loss": 0.11024285301391501,
+    "val_translation_loss": 5.3054995611310005,
+    "val_view_top1": 0.978515625,
+    "val_translation_token_accuracy": 0.019111563902697526,
+    "step": 60
+  }
+]

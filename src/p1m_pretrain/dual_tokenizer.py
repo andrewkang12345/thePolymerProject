@@ -13,11 +13,12 @@ from transformers import AutoTokenizer
 
 from .deepchem_original_tokenizer import BasicSmilesTokenizer as DeepChemBasicSmilesTokenizer
 from .deepchem_original_tokenizer import SmilesTokenizer as DeepChemSmilesTokenizer
+from .paths import get_paths
 from .pselfies import RepresentationVocab
 from .pselfies import randomize_psmiles
 
 
-CACHE = Path("/mnt/data/p1m_pretrain_experiments/cache")
+CACHE = get_paths().cache_dir
 PI1M_TRAIN_CACHE = CACHE / "pi1m_train_dedup.parquet"
 DEEPCHEM_SMILES_DIR = CACHE / "deepchem_smiles_tokenizer"
 DEEPCHEM_SMILES_VOCAB_TXT = DEEPCHEM_SMILES_DIR / "vocab.txt"

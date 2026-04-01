@@ -1,0 +1,11 @@
+# User-editable path configuration for p1m_pretrain_experiments.
+# Relative paths are resolved relative to this file's directory.
+
+project_root=.
+data_root=/mnt/data
+poly_any2any_root=/mnt/data/poly_any2any
+transpolymer_repo=/mnt/data/tmp/transpolymer
+mmpolymer_repo=/mnt/data/tmp/mmpolymer
+mmpolymer_data_root=/mnt/data/tmp/MMPolymer/dataset/data
+bigsmiles_repo=/mnt/data/tmp/bigsmiles_repo
+wandb_root=/mnt/data/cache/wandb

@@ -1,0 +1,9 @@
+model,backbone,view_weight,translation_weight,task,n_samples,test_rmse_mean,test_rmse_std,test_r2_mean,test_r2_std,train_r2_mean
+externalval_long_checkpoint_mmpolymer_vw1p0_tw1p0,mmpolymer,1.0,1.0,Egc,3380,0.4363,0.0141,0.9220,0.0041,0.9872
+externalval_long_checkpoint_mmpolymer_vw1p0_tw1p0,mmpolymer,1.0,1.0,Egb,561,0.5257,0.0350,0.9258,0.0136,0.9792
+externalval_long_checkpoint_mmpolymer_vw1p0_tw1p0,mmpolymer,1.0,1.0,Eea,368,0.2975,0.0289,0.9241,0.0130,0.9718
+externalval_long_checkpoint_mmpolymer_vw1p0_tw1p0,mmpolymer,1.0,1.0,Ei,370,0.4226,0.0318,0.8120,0.0240,0.9450
+externalval_long_checkpoint_mmpolymer_vw1p0_tw1p0,mmpolymer,1.0,1.0,Xc,432,17.7060,0.9679,0.4192,0.1457,0.7050
+externalval_long_checkpoint_mmpolymer_vw1p0_tw1p0,mmpolymer,1.0,1.0,EPS,382,0.5224,0.1060,0.7776,0.0505,0.9070
+externalval_long_checkpoint_mmpolymer_vw1p0_tw1p0,mmpolymer,1.0,1.0,Nc,382,0.0952,0.0149,0.8365,0.0377,0.9348
+externalval_long_checkpoint_mmpolymer_vw1p0_tw1p0,mmpolymer,1.0,1.0,Eat,390,0.0757,0.0301,0.9540,0.0300,0.9934

@@ -2,23 +2,23 @@ from __future__ import annotations
 
 import importlib.util
 import json
-from pathlib import Path
 from types import ModuleType
 
 import torch
 from transformers import RobertaConfig, RobertaForMaskedLM
 
 from .experimental_backbone import ExperimentalBackboneConfig, ExperimentalEncoderForMLM
+from .paths import get_paths
 
 
-ROOT = Path("/mnt/data")
-TRANSPOLYMER_REPO = ROOT / "tmp" / "transpolymer"
-MMPOLYMER_REPO = ROOT / "tmp" / "mmpolymer"
+PATHS = get_paths()
+TRANSPOLYMER_REPO = PATHS.transpolymer_repo
+MMPOLYMER_REPO = PATHS.mmpolymer_repo
 
 TRANSPOLYMER_CHECKPOINT = (
-    ROOT / "p1m_pretrain_experiments" / "checkpoints" / "transpolymer" / "pytorch_model.bin"
+    PATHS.checkpoints_dir / "transpolymer" / "pytorch_model.bin"
 )
-MMPOLYMER_CHECKPOINT = ROOT / "p1m_pretrain_experiments" / "checkpoints" / "mmpolymer" / "pretrain.pt"
+MMPOLYMER_CHECKPOINT = PATHS.checkpoints_dir / "mmpolymer" / "pretrain.pt"
 
 
 def _load_module(path: Path, module_name: str) -> ModuleType:
@@ -204,96 +204,7 @@ def _load_molformer():
     return MoLFormerForMLM(model, config)
 
 
-def _build_chem_tokenizer(max_len: int = 256):
-    """Build or load the ChemSmilesTokenizer from PI1M."""
-    from .chem_tokenizer import ChemSmilesTokenizer
-    vocab_path = ROOT / "p1m_pretrain_experiments" / "cache" / "chem_smiles_vocab.json"
-    if vocab_path.exists():
-        return ChemSmilesTokenizer.load(vocab_path, max_len=max_len)
-    import pandas as pd
-    df = pd.read_csv(str(ROOT / "poly_any2any/data/raw/pi1m/original/PI1M_v2.csv"), usecols=["SMILES"])
-    tok = ChemSmilesTokenizer.from_smiles(df["SMILES"].tolist(), max_len=max_len)
-    vocab_path.parent.mkdir(parents=True, exist_ok=True)
-    tok.save(vocab_path)
-    return tok
-
-
-def _build_chem_scratch(scratch_variant: str = "base") -> RobertaForMaskedLM:
-    """Build a RobertaForMaskedLM from scratch sized for ChemSmilesTokenizer."""
-    tok = _build_chem_tokenizer()
-    presets = {
-        "base": dict(num_hidden_layers=6, hidden_size=768, num_attention_heads=12, intermediate_size=3072),
-    }
-    preset = presets.get(scratch_variant, presets["base"])
-    config = RobertaConfig(
-        vocab_size=len(tok),
-        max_position_embeddings=514,
-        type_vocab_size=1,
-        pad_token_id=tok.pad_token_id,
-        bos_token_id=tok.bos_token_id,
-        eos_token_id=tok.eos_token_id,
-        **preset,
-    )
-    model = RobertaForMaskedLM(config)
-    model.tie_weights()
-    return model
-
-
-SMI_TED_VOCAB = ROOT / "p1m_pretrain_experiments" / "checkpoints" / "smi_ted" / "bert_vocab_curated.txt"
-
-
-def _build_chem_bpe_tokenizer(max_len: int = 514):
-    """Load the ChemBPE tokenizer from saved artifacts."""
-    from .chem_bpe_tokenizer import ChemBPETokenizer
-    return ChemBPETokenizer.load(max_len=max_len)
-
-
-def _build_chem_bpe_short_tokenizer(max_len: int = 514):
-    """Load the short ChemBPE tokenizer from saved artifacts."""
-    from .chem_bpe_tokenizer import ShortChemBPETokenizer
-    return ShortChemBPETokenizer.load(max_len=max_len)
-
-
-def _build_chem_bpe_scratch(scratch_variant: str = "base") -> RobertaForMaskedLM:
-    """Build a RobertaForMaskedLM from scratch sized for ChemBPE tokenizer."""
-    tok = _build_chem_bpe_tokenizer()
-    presets = {
-        "base": dict(num_hidden_layers=6, hidden_size=768, num_attention_heads=12, intermediate_size=3072),
-    }
-    preset = presets.get(scratch_variant, presets["base"])
-    config = RobertaConfig(
-        vocab_size=len(tok),
-        max_position_embeddings=514,
-        type_vocab_size=1,
-        pad_token_id=tok.pad_token_id,
-        bos_token_id=tok.bos_token_id,
-        eos_token_id=tok.eos_token_id,
-        **preset,
-    )
-    model = RobertaForMaskedLM(config)
-    model.tie_weights()
-    return model
-
-
-def _build_chem_bpe_short_scratch(scratch_variant: str = "base") -> RobertaForMaskedLM:
-    """Build a RobertaForMaskedLM from scratch sized for the short ChemBPE tokenizer."""
-    tok = _build_chem_bpe_short_tokenizer()
-    presets = {
-        "base": dict(num_hidden_layers=6, hidden_size=768, num_attention_heads=12, intermediate_size=3072),
-    }
-    preset = presets.get(scratch_variant, presets["base"])
-    config = RobertaConfig(
-        vocab_size=len(tok),
-        max_position_embeddings=514,
-        type_vocab_size=1,
-        pad_token_id=tok.pad_token_id,
-        bos_token_id=tok.bos_token_id,
-        eos_token_id=tok.eos_token_id,
-        **preset,
-    )
-    model = RobertaForMaskedLM(config)
-    model.tie_weights()
-    return model
+SMI_TED_VOCAB = PATHS.smi_ted_dir / "bert_vocab_curated.txt"
 
 
 def _build_dual_deepchem_pselfies_tokenizer(max_len: int = 514):
@@ -325,12 +236,6 @@ def load_tokenizer_for_backbone(name: str, max_len: int = 256):
     if name == "smi_ted":
         from .smi_ted_extended import build_extended_smi_ted_tokenizer
         return build_extended_smi_ted_tokenizer(max_len=202)
-    if name == "chem_smiles":
-        return _build_chem_tokenizer(max_len=max_len)
-    if name == "chem_bpe":
-        return _build_chem_bpe_tokenizer(max_len=max_len)
-    if name == "chem_bpe_short":
-        return _build_chem_bpe_short_tokenizer(max_len=max_len)
     if name == "dual_deepchem_pselfies_shared":
         return _build_dual_deepchem_pselfies_tokenizer(max_len=max_len)
     if name == "dual_correctdeepchem_pselfies_shared":
@@ -367,12 +272,6 @@ def load_backbone_model(
         return model
     if name == "molformer":
         return _load_molformer()
-    if name == "chem_smiles":
-        return _build_chem_scratch(scratch_variant=scratch_variant)
-    if name == "chem_bpe":
-        return _build_chem_bpe_scratch(scratch_variant=scratch_variant)
-    if name == "chem_bpe_short":
-        return _build_chem_bpe_short_scratch(scratch_variant=scratch_variant)
     if name == "dual_deepchem_pselfies_shared":
         return _build_dual_deepchem_pselfies_scratch(scratch_variant=scratch_variant)
     if name == "dual_correctdeepchem_pselfies_shared":

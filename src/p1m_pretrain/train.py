@@ -29,7 +29,11 @@ from .data import (
 from .bigsmiles import augment_parquet_with_bigsmiles
 from .dual_tokenizer import DualTokenizerBundle, DualTokenizerContinuationCollator, PSELFIES_TOKENS_PATH
 from .modeling import ContinuationModel
+from .paths import get_paths
 from .upstream import load_polymer_smiles_tokenizer, load_tokenizer_for_backbone
+
+
+PATHS = get_paths()
 
 
 @dataclass
@@ -69,8 +73,8 @@ class ExperimentConfig:
     combined_translation_weight: float = 1.0
     gradient_clip_norm: float = 1.0
     train_log_every: int = 10
-    output_root: str = "/mnt/data/p1m_pretrain_experiments/outputs"
-    cache_root: str = "/mnt/data/p1m_pretrain_experiments/cache"
+    output_root: str = str(PATHS.outputs_dir)
+    cache_root: str = str(PATHS.cache_dir)
     split_protocol: str = "canonical_proxy_hash_v1"
     preprocess_workers: int = 8
     validation_protocol: str = "external_polymer_mix_v1"
@@ -400,19 +404,6 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Any]:
                 "translation_eos_id": rep_vocab.eos_id,
                 "translation_mask_id": rep_vocab.mask_id,
             }
-        elif config.backbone in {"chem_bpe", "chem_bpe_short"}:
-            from .chem_bpe_tokenizer import SMILES_PREFIX as CBP_SP, SELFIES_PREFIX as CBP_SFP, ChemBPERepVocab
-            smiles_prefix = CBP_SP
-            selfies_prefix = CBP_SFP
-            rep_vocab = ChemBPERepVocab(tokenizer)
-            model_translation_kwargs = {
-                "translation_vocab_size": rep_vocab.size,
-                "translation_pad_id": rep_vocab.pad_id,
-                "translation_bos_id": rep_vocab.bos_id,
-                "translation_eos_id": rep_vocab.eos_id,
-                "translation_mask_id": rep_vocab.mask_id,
-            }
-
         collator = ContinuationCollator(
             tokenizer,
             rep_vocab,

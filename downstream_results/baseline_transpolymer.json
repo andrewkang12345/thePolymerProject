@@ -1,0 +1,41 @@
+[
+  {
+    "task": "Egc",
+    "n_folds": 3,
+    "n_samples": 3380,
+    "test_rmse_mean": 0.47639613020645105,
+    "test_rmse_std": 0.006752868203725558,
+    "test_r2_mean": 0.907019151053039,
+    "test_r2_std": 0.0032678371575588726,
+    "train_rmse_mean": 0.18540234240384276,
+    "train_r2_mean": 0.9859132306519388,
+    "fold_results": [
+      {
+        "fold": 1,
+        "train_rmse": 0.18860857565208955,
+        "test_rmse": 0.4726324858489573,
+        "train_r2": 0.9856629232546846,
+        "test_r2": 0.9055707750600462
+      },
+      {
+        "fold": 2,
+        "train_rmse": 0.19190813727714814,
+        "test_rmse": 0.48587914172161506,
+        "train_r2": 0.9848753206762896,
+        "test_r2": 0.9039427082111513
+      },
+      {
+        "fold": 3,
+        "train_rmse": 0.17569031428229054,
+        "test_rmse": 0.470676763048781,
+        "train_r2": 0.987201448024842,
+        "test_r2": 0.9115439698879193
+      }
+    ],
+    "model": "baseline_transpolymer",
+    "model_config": {
+      "backbone": "transpolymer",
+      "init_mode": "baseline"
+    }
+  }
+]

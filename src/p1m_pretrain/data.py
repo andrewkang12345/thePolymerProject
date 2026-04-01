@@ -21,15 +21,12 @@ from .pselfies import (
     proxy_pselfies_from_psmiles,
     randomize_psmiles,
 )
+from .paths import get_paths
 
 
-PI1M_CSV = Path("/mnt/data/poly_any2any/data/raw/pi1m/original/PI1M_v2.csv")
-EXTERNAL_JSONL_SPECS: tuple[tuple[str, str, str], ...] = (
-    ("/mnt/data/poly_any2any/data/raw/openpoly/openpoly.jsonl", "openpoly", "PSMILES"),
-    ("/mnt/data/poly_any2any/data/raw/polymetrix/polymetrix.jsonl", "polymetrix", "PSMILES"),
-    ("/mnt/data/poly_any2any/data/raw/radonpy/radonpy.jsonl", "radonpy", "smiles"),
-    ("/mnt/data/poly_any2any/data/raw/bigsmiles_conversion/bigsmiles_conversion.jsonl", "bigsmiles_conversion", "SMILES"),
-)
+PATHS = get_paths()
+PI1M_CSV = PATHS.pi1m_csv
+EXTERNAL_JSONL_SPECS: tuple[tuple[str, str, str], ...] = PATHS.external_jsonl_specs
 
 
 @dataclass

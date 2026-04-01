@@ -1,0 +1,2 @@
+model,backbone,view_weight,translation_weight,task,n_samples,test_rmse_mean,test_rmse_std,test_r2_mean,test_r2_std,train_r2_mean
+trans_scratch_vw1_tw1_e2,transpolymer,1.0,1.0,Eat,390,0.0715,0.0288,0.9587,0.0264,0.9884

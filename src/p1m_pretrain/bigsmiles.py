@@ -8,8 +8,9 @@ from types import ModuleType
 
 import pandas as pd
 
+from .paths import get_paths
 
-BIGSMILES_REPO = Path("/mnt/data/tmp/bigsmiles_repo")
+BIGSMILES_REPO = get_paths().bigsmiles_repo
 BIGSMILES_MODULE_PATH = BIGSMILES_REPO / "BigSMILES_homopolymer" / "BigSMILES_homopolymer.py"
 
 _BIGSMILES_MODULE: ModuleType | None = None

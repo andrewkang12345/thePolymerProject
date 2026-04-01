@@ -1,0 +1,2 @@
+model,backbone,view_weight,translation_weight,task,n_samples,test_rmse_mean,test_rmse_std,test_r2_mean,test_r2_std,train_r2_mean
+trans_scratch_mlm_only_e2,transpolymer,0.0,0.0,Egb,561,0.5215,0.0332,0.9271,0.0124,0.9744

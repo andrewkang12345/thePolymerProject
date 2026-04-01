@@ -10,8 +10,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .paths import get_paths
+
 # Add SMI-TED inference code to path
-SMI_TED_DIR = Path("/mnt/data/p1m_pretrain_experiments/checkpoints/smi_ted")
+SMI_TED_DIR = get_paths().smi_ted_dir
 SMI_TED_CODE = SMI_TED_DIR / "smi-ted" / "inference" / "smi_ted_light"
 sys.path.insert(0, str(SMI_TED_CODE))
 
