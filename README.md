@@ -21,6 +21,18 @@ The pSELFIES path uses a deterministic At-terminated proxy conversion:
 
 This is lighter than the full polyBART cyclic canonicalization pipeline, but it gives stable paired supervision quickly for PI1M continuation experiments.
 
+## Downstream evaluation snapshot
+
+The repository has enough downstream evaluation outputs to summarize mean test-set R² across the 8-task comparable runs (`EPS`, `Eat`, `Eea`, `Egb`, `Egc`, `Ei`, `Nc`, `Xc`).
+
+![Mean downstream test R² across comparable runs](docs/downstream_mean_r2_test.png)
+
+Regenerate the figure with:
+
+```bash
+python3 scripts/plot_downstream_mean_r2.py
+```
+
 ## Run one checkpoint + external-val experiment
 
 ```bash
