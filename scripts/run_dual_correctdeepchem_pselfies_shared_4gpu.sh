@@ -4,7 +4,6 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/load_paths.sh"
 cd "${P1M_PROJECT_ROOT}"
 
 export WANDB_DIR="${P1M_WANDB_ROOT}"
-export WANDB_API_KEY="${WANDB_API_KEY:-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}"
 
 RUN_NAME="dual_correctdeepchem_pselfies_shared_scratch_vw1_tw1_e2"
 CKPT="outputs/${RUN_NAME}/best.pt"

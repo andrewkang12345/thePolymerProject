@@ -4,7 +4,6 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/load_paths.sh"
 cd "${P1M_PROJECT_ROOT}"
 
 export WANDB_DIR="${P1M_WANDB_ROOT}"
-export WANDB_API_KEY=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
 
 COMMON="--validation-protocol external_polymer_mix_v1 \
   --train-size 0 --val-size 2000 --batch-size 128 \
