@@ -21,6 +21,12 @@ The pSELFIES path uses a deterministic At-terminated proxy conversion:
 
 This is lighter than the full polyBART cyclic canonicalization pipeline, but it gives stable paired supervision quickly for PI1M continuation experiments.
 
+## Path configuration
+
+The repo is intended to be portable across machines. The checked-in [`paths.txt`](paths.txt) now uses relative defaults, so if you keep sibling repos and datasets next to this checkout, it can run without editing absolute `/mnt/data/...` paths.
+
+If your layout differs, edit `paths.txt` before running training or evaluation.
+
 ## Downstream evaluation snapshot
 
 The repository has enough downstream evaluation outputs to summarize mean test-set R² across the 8-task comparable runs (`EPS`, `Eat`, `Eea`, `Egb`, `Egc`, `Ei`, `Nc`, `Xc`).

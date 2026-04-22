@@ -39,6 +39,7 @@ class ProjectPaths:
     mmpolymer_repo: Path
     mmpolymer_data_root: Path
     bigsmiles_repo: Path
+    graphdit_root: Path
     wandb_root: Path
 
     @property
@@ -96,6 +97,7 @@ def get_paths(paths_file: str | Path | None = None) -> ProjectPaths:
         "mmpolymer_repo",
         "mmpolymer_data_root",
         "bigsmiles_repo",
+        "graphdit_root",
         "wandb_root",
     )
     missing = [key for key in required if key not in raw]
@@ -111,5 +113,6 @@ def get_paths(paths_file: str | Path | None = None) -> ProjectPaths:
         mmpolymer_repo=_resolve_value(config_dir, raw["mmpolymer_repo"]),
         mmpolymer_data_root=_resolve_value(config_dir, raw["mmpolymer_data_root"]),
         bigsmiles_repo=_resolve_value(config_dir, raw["bigsmiles_repo"]),
+        graphdit_root=_resolve_value(config_dir, raw["graphdit_root"]),
         wandb_root=_resolve_value(config_dir, raw["wandb_root"]),
     )

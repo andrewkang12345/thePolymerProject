@@ -7,7 +7,7 @@ export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3}"
 export WANDB_DIR="${P1M_WANDB_ROOT}"
 
 RUN_NAME="${RUN_NAME:-polyone100m_dual_correctdeepchem_deep_selfiesmlm_vw1_tw1}"
-POLY_ANY2ANY_ROOT="${P1M_POLY_ANY2ANY_ROOT:-/mnt/data/poly_any2any}"
+POLY_ANY2ANY_ROOT="${P1M_POLY_ANY2ANY_ROOT}"
 POLYONE_ROOT="${POLYONE_ROOT:-${POLY_ANY2ANY_ROOT}/data/raw/polyone_100m/original}"
 
 python3 scripts/train_polyone_100m.py \

@@ -20,15 +20,18 @@ from transformers import get_linear_schedule_with_warmup
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 
-ROOT = Path("/mnt/data/p1m_pretrain_experiments")
-GRAPHDIT = Path("/mnt/data/Graph-DiT")
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "src"))
+
+from p1m_pretrain.paths import get_paths
+
+PATHS = get_paths()
+GRAPHDIT = PATHS.graphdit_root
 DUAL_CHECKPOINT = ROOT / "outputs" / "dual_correctdeepchem_pselfies_shared_deep_selfiesmlm_vw1_tw1_e16" / "best.pt"
 MM_CHECKPOINT = ROOT / "outputs" / "a10_targeted_mm_vw1p0_tw1p0" / "best.pt"
 OUTPUT_DIR = ROOT / "graphdit_comparison"
 TASKS = ["O2", "N2", "CO2"]
-
-sys.path.insert(0, str(ROOT / "scripts"))
-sys.path.insert(0, str(ROOT / "src"))
 
 
 def set_seed(seed: int):

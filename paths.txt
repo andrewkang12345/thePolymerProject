@@ -2,10 +2,11 @@
 # Relative paths are resolved relative to this file's directory.
 
 project_root=.
-data_root=/mnt/data
-poly_any2any_root=/mnt/data/poly_any2any
-transpolymer_repo=/mnt/data/tmp/transpolymer
-mmpolymer_repo=/mnt/data/tmp/mmpolymer
-mmpolymer_data_root=/mnt/data/tmp/MMPolymer/dataset/data
-bigsmiles_repo=/mnt/data/tmp/bigsmiles_repo
-wandb_root=/mnt/data/cache/wandb
+data_root=..
+poly_any2any_root=../poly_any2any
+transpolymer_repo=../tmp/transpolymer
+mmpolymer_repo=../tmp/mmpolymer
+mmpolymer_data_root=../tmp/MMPolymer/dataset/data
+bigsmiles_repo=../tmp/bigsmiles_repo
+graphdit_root=../Graph-DiT
+wandb_root=../cache/wandb
