@@ -16,6 +16,7 @@ from .deepchem_original_tokenizer import SmilesTokenizer as DeepChemSmilesTokeni
 from .paths import get_paths
 from .pselfies import RepresentationVocab
 from .pselfies import randomize_psmiles
+from .span_infilling import SENTINEL_TOKENS, build_span_infilling_example
 
 
 CACHE = get_paths().cache_dir
@@ -93,6 +94,7 @@ def _build_pselfies_tokens(cache_path: Path) -> list[str]:
             continue
     ordered = [tok for tok in PSELFIES_SPECIAL_TOKENS]
     ordered.extend(sorted(tokens - set(PSELFIES_SPECIAL_TOKENS)))
+    ordered.extend(token for token in SENTINEL_TOKENS if token not in tokens)
     return ordered
 
 
@@ -134,6 +136,10 @@ class PSelfiesTokenizer:
     def vocab_size(self) -> int:
         return len(self.id_to_token)
 
+    @property
+    def sentinel_token_ids(self) -> list[int]:
+        return [self.token_to_id[token] for token in SENTINEL_TOKENS if token in self.token_to_id]
+
     def __len__(self) -> int:
         return len(self.id_to_token)
 
@@ -144,8 +150,15 @@ class PSelfiesTokenizer:
             return []
 
     def encode(self, text: str, add_special_tokens: bool = True, max_length: int | None = None) -> list[int]:
+        return self.encode_tokens(self.tokenize(text), add_special_tokens=add_special_tokens, max_length=max_length)
+
+    def encode_tokens(
+        self,
+        tokens: list[str],
+        add_special_tokens: bool = True,
+        max_length: int | None = None,
+    ) -> list[int]:
         max_length = max_length or self._max_len
-        tokens = self.tokenize(text)
         ids = [self.token_to_id.get(token, self.unk_token_id) for token in tokens]
         if add_special_tokens:
             ids = [self.cls_token_id] + ids[: max_length - 2] + [self.sep_token_id]
@@ -194,6 +207,10 @@ class PSelfiesTokenizer:
     def load(cls, path: Path, max_len: int = 256) -> "PSelfiesTokenizer":
         payload = json.loads(path.read_text())
         tokens = payload["tokens"] if isinstance(payload, dict) else payload
+        tokens = list(tokens)
+        for token in SENTINEL_TOKENS:
+            if token not in tokens:
+                tokens.append(token)
         return cls(tokens, max_len=max_len)
 
 
@@ -257,11 +274,13 @@ def _apply_dual_mlm_mask(
         row_mask = language_ids.eq(language_id)
         if not row_mask.any():
             continue
+        tokenizer = bundle.psmiles_tokenizer if language_id == PSMILES_LANGUAGE_ID else bundle.pselfies_tokenizer
         pad_id, cls_id, sep_id, mask_id = _language_specific_ids(bundle, language_id)
-        vocab_size = len(bundle.psmiles_tokenizer) if language_id == PSMILES_LANGUAGE_ID else len(bundle.pselfies_tokenizer)
-        special_mask = row_mask.unsqueeze(1) & (
-            labels.eq(pad_id) | labels.eq(cls_id) | labels.eq(sep_id)
-        )
+        vocab_size = len(tokenizer)
+        special_mask = row_mask.unsqueeze(1) & (labels.eq(pad_id) | labels.eq(cls_id) | labels.eq(sep_id))
+        sentinel_token_ids = getattr(tokenizer, "sentinel_token_ids", [])
+        for sentinel_id in sentinel_token_ids:
+            special_mask |= row_mask.unsqueeze(1) & labels.eq(sentinel_id)
         probability_matrix.masked_fill_(special_mask, 0.0)
         masked_indices = torch.bernoulli(probability_matrix[row_mask]).bool()
         replace_mask = torch.bernoulli(torch.full(masked_indices.shape, 0.8)).bool() & masked_indices
@@ -269,7 +288,16 @@ def _apply_dual_mlm_mask(
         lang_inputs = inputs[row_mask]
         lang_inputs[replace_mask] = mask_id
         if random_mask.any():
-            random_words = torch.randint(vocab_size, masked_indices.shape, dtype=torch.long, device=input_ids.device)
+            if sentinel_token_ids:
+                candidate_ids = torch.tensor(
+                    [idx for idx in range(vocab_size) if idx not in set(sentinel_token_ids)],
+                    dtype=torch.long,
+                    device=input_ids.device,
+                )
+                random_positions = torch.randint(candidate_ids.size(0), masked_indices.shape, dtype=torch.long, device=input_ids.device)
+                random_words = candidate_ids[random_positions]
+            else:
+                random_words = torch.randint(vocab_size, masked_indices.shape, dtype=torch.long, device=input_ids.device)
             lang_inputs[random_mask] = random_words[random_mask]
         inputs[row_mask] = lang_inputs
         if not label_unmasked:
@@ -290,6 +318,7 @@ class DualTokenizerContinuationCollator:
         mlm_probability: float,
         translation_mask_probability: float,
         mlm_selfies_mix: bool = False,
+        pretrain_objective: str = "mlm",
         translation_target_mode: str = "paired",
         translation_vocab: RepresentationVocab | None = None,
     ) -> None:
@@ -300,6 +329,9 @@ class DualTokenizerContinuationCollator:
         self.mlm_probability = mlm_probability
         self.translation_mask_probability = translation_mask_probability
         self.mlm_selfies_mix = mlm_selfies_mix
+        if pretrain_objective not in {"mlm", "t5_span_infilling"}:
+            raise ValueError(f"Unsupported pretrain_objective: {pretrain_objective}")
+        self.pretrain_objective = pretrain_objective
         if translation_target_mode not in {"paired", "bigsmiles"}:
             raise ValueError(f"Unsupported translation_target_mode: {translation_target_mode}")
         if translation_target_mode == "bigsmiles" and translation_vocab is None:
@@ -326,12 +358,56 @@ class DualTokenizerContinuationCollator:
             torch.tensor(language_ids, dtype=torch.long),
         )
 
+    def _encode_token_batch(
+        self,
+        token_sequences: list[list[str]],
+        language_ids: list[int],
+        max_len: int,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        encoded = []
+        pad_ids = []
+        for tokens, language_id in zip(token_sequences, language_ids):
+            tokenizer = self.bundle.psmiles_tokenizer if language_id == PSMILES_LANGUAGE_ID else self.bundle.pselfies_tokenizer
+            if not hasattr(tokenizer, "encode_tokens"):
+                raise ValueError("Token-level encoding is only supported for pSELFIES span infilling")
+            encoded.append(tokenizer.encode_tokens(tokens, add_special_tokens=True, max_length=max_len))
+            pad_ids.append(tokenizer.pad_token_id)
+        padded, attention_masks = _pad_sequences(encoded, pad_ids, max_len)
+        return (
+            torch.tensor(padded, dtype=torch.long),
+            torch.tensor(attention_masks, dtype=torch.long),
+            torch.tensor(language_ids, dtype=torch.long),
+        )
+
     def __call__(self, records) -> dict[str, torch.Tensor]:
         psmiles = [record.psmiles for record in records]
         pselfies = [record.pselfies for record in records]
         bigsmiles = [record.bigsmiles for record in records]
 
-        if self.mlm_selfies_mix:
+        span_target_ids = None
+        span_target_language_ids = None
+
+        if self.pretrain_objective == "t5_span_infilling":
+            span_examples = [
+                build_span_infilling_example(
+                    self.bundle.pselfies_tokenizer.tokenize(pselfies_value),
+                    noise_density=self.mlm_probability,
+                )
+                for pselfies_value in pselfies
+            ]
+            mlm_ids, mlm_attention, mlm_language_ids = self._encode_token_batch(
+                [example.input_tokens for example in span_examples],
+                [PSELFIES_LANGUAGE_ID] * len(span_examples),
+                self.psmiles_max_len,
+            )
+            mlm_input_ids = mlm_ids
+            mlm_labels = torch.full_like(mlm_input_ids, -100)
+            span_target_ids, _, span_target_language_ids = self._encode_token_batch(
+                [example.target_tokens for example in span_examples],
+                [PSELFIES_LANGUAGE_ID] * len(span_examples),
+                self.translation_target_max_len,
+            )
+        elif self.mlm_selfies_mix:
             mlm_texts = []
             mlm_languages = []
             for psmiles_value, pselfies_value in zip(psmiles, pselfies):
@@ -344,14 +420,15 @@ class DualTokenizerContinuationCollator:
         else:
             mlm_texts = psmiles
             mlm_languages = [PSMILES_LANGUAGE_ID] * len(psmiles)
-        mlm_ids, mlm_attention, mlm_language_ids = self._encode_batch(mlm_texts, mlm_languages, self.psmiles_max_len)
-        mlm_input_ids, mlm_labels = _apply_dual_mlm_mask(
-            mlm_ids,
-            mlm_language_ids,
-            bundle=self.bundle,
-            probability=self.mlm_probability,
-            label_unmasked=False,
-        )
+        if self.pretrain_objective == "mlm":
+            mlm_ids, mlm_attention, mlm_language_ids = self._encode_batch(mlm_texts, mlm_languages, self.psmiles_max_len)
+            mlm_input_ids, mlm_labels = _apply_dual_mlm_mask(
+                mlm_ids,
+                mlm_language_ids,
+                bundle=self.bundle,
+                probability=self.mlm_probability,
+                label_unmasked=False,
+            )
 
         view1_ids, view1_attention, view1_language_ids = self._encode_batch(
             [randomize_psmiles(text) for text in psmiles],
@@ -438,7 +515,7 @@ class DualTokenizerContinuationCollator:
             ]
         translation_target_padded, _ = _pad_sequences(translation_targets, target_pad_ids, self.translation_target_max_len)
 
-        return {
+        batch = {
             "mlm_input_ids": mlm_input_ids,
             "mlm_attention_mask": mlm_attention,
             "mlm_labels": mlm_labels,
@@ -456,3 +533,7 @@ class DualTokenizerContinuationCollator:
             "translation_target_language_ids": torch.tensor(translation_target_languages, dtype=torch.long),
             "translation_direction": torch.tensor(translation_directions, dtype=torch.long),
         }
+        if span_target_ids is not None and span_target_language_ids is not None:
+            batch["span_target_ids"] = span_target_ids
+            batch["span_target_language_ids"] = span_target_language_ids
+        return batch

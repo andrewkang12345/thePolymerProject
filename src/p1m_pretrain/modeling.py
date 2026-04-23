@@ -180,6 +180,7 @@ class ContinuationModel(nn.Module):
         *,
         backbone_name: str,
         init_mode: str,
+        pretrain_objective: str = "mlm",
         translation_vocab_size: int,
         translation_pad_id: int,
         translation_bos_id: int,
@@ -198,6 +199,9 @@ class ContinuationModel(nn.Module):
         super().__init__()
         self.backbone_name = backbone_name
         self.init_mode = init_mode
+        if pretrain_objective not in {"mlm", "t5_span_infilling"}:
+            raise ValueError(f"Unsupported pretrain_objective: {pretrain_objective}")
+        self.pretrain_objective = pretrain_objective
         self.view_temperature = view_temperature
         self.backbone = load_backbone_model(backbone_name, init_mode=init_mode, **(backbone_kwargs or {}))
         hidden_size = self.backbone.config.hidden_size
@@ -240,6 +244,48 @@ class ContinuationModel(nn.Module):
                     num_layers=translation_decoder_layers,
                     dropout=translation_decoder_dropout,
                 )
+        self.span_infilling_decoder = None
+        if self.pretrain_objective == "t5_span_infilling":
+            self.span_infilling_decoder = self._build_span_infilling_decoder(
+                max_length=translation_max_length,
+                num_layers=translation_decoder_layers,
+                dropout=translation_decoder_dropout,
+                hidden_size=hidden_size,
+                num_heads=num_heads,
+            )
+
+    def _build_span_infilling_decoder(
+        self,
+        *,
+        max_length: int,
+        num_layers: int,
+        dropout: float,
+        hidden_size: int,
+        num_heads: int,
+    ) -> nn.Module:
+        if hasattr(self.backbone, "build_translation_decoder"):
+            return self.backbone.build_translation_decoder(
+                translation_max_length=max_length,
+                translation_decoder_layers=num_layers,
+                translation_decoder_dropout=dropout,
+                translation_decoder_type="autoregressive",
+            )
+        model_config = getattr(self.backbone, "model_config", None)
+        if model_config is None or not hasattr(model_config, "selfies_vocab_size"):
+            raise ValueError(
+                f"pretrain_objective='t5_span_infilling' requires a dual backbone with pSELFIES vocab metadata, got {self.backbone_name}"
+            )
+        return TranslationDecoder(
+            hidden_size=hidden_size,
+            nhead=num_heads,
+            vocab_size=model_config.selfies_vocab_size,
+            max_length=max_length,
+            pad_id=model_config.selfies_pad_id,
+            bos_id=model_config.selfies_cls_id,
+            eos_id=model_config.selfies_sep_id,
+            num_layers=num_layers,
+            dropout=dropout,
+        )
 
     def encode(
         self,
@@ -273,17 +319,35 @@ class ContinuationModel(nn.Module):
             translation_weight = float(batch.pop("_translation_weight").flatten()[0])
         elif isinstance(translation_weight, torch.Tensor):
             translation_weight = float(translation_weight.flatten()[0])
-        mlm_kwargs = {}
-        if "mlm_language_ids" in batch:
-            mlm_kwargs["language_ids"] = batch["mlm_language_ids"]
-        mlm_outputs = self.backbone(
-            input_ids=batch["mlm_input_ids"],
-            attention_mask=batch["mlm_attention_mask"],
-            labels=batch["mlm_labels"],
-            return_dict=True,
-            **mlm_kwargs,
-        )
-        mlm_loss = mlm_outputs.loss
+        if self.pretrain_objective == "t5_span_infilling":
+            if self.span_infilling_decoder is None:
+                raise RuntimeError("span_infilling_decoder is not initialized")
+            mlm_memory, _ = self.encode(
+                batch["mlm_input_ids"],
+                batch["mlm_attention_mask"],
+                batch.get("mlm_language_ids"),
+            )
+            infill_kwargs = {}
+            if getattr(self.span_infilling_decoder, "requires_target_language_ids", False):
+                infill_kwargs["target_language_ids"] = batch["span_target_language_ids"]
+            mlm_loss, _, _ = self.span_infilling_decoder(
+                memory=mlm_memory,
+                memory_attention_mask=batch["mlm_attention_mask"],
+                target_ids=batch["span_target_ids"],
+                **infill_kwargs,
+            )
+        else:
+            mlm_kwargs = {}
+            if "mlm_language_ids" in batch:
+                mlm_kwargs["language_ids"] = batch["mlm_language_ids"]
+            mlm_outputs = self.backbone(
+                input_ids=batch["mlm_input_ids"],
+                attention_mask=batch["mlm_attention_mask"],
+                labels=batch["mlm_labels"],
+                return_dict=True,
+                **mlm_kwargs,
+            )
+            mlm_loss = mlm_outputs.loss
 
         view1_hidden, view1_pooled = self.encode(
             batch["view1_input_ids"],

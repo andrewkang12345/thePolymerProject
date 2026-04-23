@@ -17,6 +17,7 @@ def parse_args() -> ExperimentConfig:
     parser.add_argument("--backbone", choices=["transpolymer", "mmpolymer", "molformer", "smi_ted", "dual_deepchem_pselfies_shared", "dual_correctdeepchem_pselfies_shared"], required=True)
     parser.add_argument("--run-name", required=True)
     parser.add_argument("--init-mode", choices=["scratch", "checkpoint", "huggingface"], default="checkpoint")
+    parser.add_argument("--pretrain-objective", choices=["mlm", "t5_span_infilling"], default="mlm")
     parser.add_argument("--backbone-family", choices=["upstream_roberta", "experimental"], default="upstream_roberta")
     parser.add_argument("--scratch-variant", choices=["base", "deep", "small", "tiny"], default="base")
     parser.add_argument("--position-embedding-type", choices=["absolute", "rope"], default="absolute")
@@ -67,6 +68,7 @@ def parse_args() -> ExperimentConfig:
         backbone=args.backbone,
         run_name=args.run_name,
         init_mode=args.init_mode,
+        pretrain_objective=args.pretrain_objective,
         backbone_family=args.backbone_family,
         scratch_variant=args.scratch_variant,
         position_embedding_type=args.position_embedding_type,

@@ -41,6 +41,7 @@ class ExperimentConfig:
     backbone: str
     run_name: str
     init_mode: str = "checkpoint"
+    pretrain_objective: str = "mlm"
     backbone_family: str = "upstream_roberta"
     scratch_variant: str = "base"
     position_embedding_type: str = "absolute"
@@ -242,6 +243,11 @@ def _unfreeze_all(model: ContinuationModel) -> None:
 
 def run_experiment(config: ExperimentConfig) -> dict[str, Any]:
     seed_everything(config.seed)
+    if config.pretrain_objective == "t5_span_infilling" and config.backbone not in {
+        "dual_deepchem_pselfies_shared",
+        "dual_correctdeepchem_pselfies_shared",
+    }:
+        raise ValueError("pretrain_objective='t5_span_infilling' is only supported for dual pSMILES/pSELFIES backbones")
 
     cache_root = Path(config.cache_root)
     output_root = Path(config.output_root)
@@ -362,6 +368,7 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Any]:
             mlm_probability=config.mlm_probability,
             translation_mask_probability=config.translation_mask_probability,
             mlm_selfies_mix=config.mlm_selfies_mix,
+            pretrain_objective=config.pretrain_objective,
             translation_target_mode=config.translation_target_mode,
             translation_vocab=rep_vocab if config.translation_target_mode == "bigsmiles" else None,
         )
@@ -444,6 +451,7 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Any]:
     model = ContinuationModel(
         backbone_name=config.backbone,
         init_mode=config.init_mode,
+        pretrain_objective=config.pretrain_objective,
         translation_vocab_size=model_translation_kwargs["translation_vocab_size"],
         translation_pad_id=model_translation_kwargs["translation_pad_id"],
         translation_bos_id=model_translation_kwargs["translation_bos_id"],
@@ -546,7 +554,8 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Any]:
         autocast_context = torch.autocast(device_type="cuda", dtype=torch.bfloat16) if use_autocast else nullcontext()
         with autocast_context:
             if isinstance(model, torch.nn.DataParallel):
-                bs = batch["mlm_input_ids"].size(0)
+                first_tensor = next(value for value in batch.values() if isinstance(value, torch.Tensor))
+                bs = first_tensor.size(0)
                 batch["_view_weight"] = torch.full((bs,), config.view_weight, device=device)
                 batch["_translation_weight"] = torch.full((bs,), config.translation_weight, device=device)
                 out = model(batch)
